@@ -37,6 +37,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     event UserStaked(address indexed user, uint256 amount);
     event UserUnstaked(address indexed user, uint256 amount);
     event RewardClaimed(address indexed user, uint256 indexed phase, uint256 amount);
+    event PhaseFunded(uint256 indexed phase, uint256 amount);
 
     function initialize(address stakeToken_, address rewardToken_) public initializer {
         stakeToken = IERC20Upgradeable(stakeToken_);
@@ -50,21 +51,6 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         totalContribution = phases[phase].totalContribution;
     }
     
-    function startPhase(uint256 duration_) external onlyOwner {
-        require(
-            currentPhase == 0 
-            || phases[currentPhase - 1].startTime + phases[currentPhase - 1].duration < block.timestamp,
-            "startPhase::Previous phase not ended"
-        );
-        PhaseInfo storage currentPhaseInfo = phases[currentPhase];
-        currentPhaseInfo.startTime = block.timestamp;
-        currentPhaseInfo.duration = duration_;
-        currentPhaseInfo.totalContribution = totalStake * duration_;
-
-        currentPhase += 1;
-        emit PhaseStarted(currentPhase, duration_);
-    }
-
     function stake(uint256 stakeAmount) public {
         _updateUserContribution(msg.sender);
 
@@ -109,6 +95,30 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         rewardToken.safeTransfer(msg.sender, reward);
 
         emit RewardClaimed(msg.sender, phase, reward);
+    }
+
+    function startPhase(uint256 duration_) external onlyOwner {
+        require(
+            currentPhase == 0 
+            || phases[currentPhase - 1].startTime + phases[currentPhase - 1].duration < block.timestamp,
+            "startPhase::Previous phase not ended"
+        );
+        PhaseInfo storage currentPhaseInfo = phases[currentPhase];
+        currentPhaseInfo.startTime = block.timestamp;
+        currentPhaseInfo.duration = duration_;
+        currentPhaseInfo.totalContribution = totalStake * duration_;
+
+        currentPhase += 1;
+        emit PhaseStarted(currentPhase, duration_);
+    }
+
+    function fundPhase(uint256 phase, uint256 fundAmount) external onlyOwner {
+        require(phase < currentPhase, "fundPhase::phase not found");
+        require(phases[phase].totalReward == 0, "fundPhase::phase funded");
+        phases[phase].totalReward = fundAmount;
+        rewardToken.safeTransfer(address(this), fundAmount);
+
+        emit PhaseFunded(phase, fundAmount);
     }
 
     function _updateUserContribution(address user) internal {
