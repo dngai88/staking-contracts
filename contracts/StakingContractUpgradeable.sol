@@ -58,8 +58,8 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     function stake(uint256 stakeAmount) public {
         _updateUserContribution(msg.sender);
 
-        if (phases[currentPhase - 1].startTime <= block.timestamp && phases[currentPhase - 1].startTime + phases[currentPhase - 1].duration >= block.timestamp) {
-            uint256 timeLeft = phases[currentPhase - 1].duration - (block.timestamp - phases[currentPhase - 1].startTime);
+        uint256 timeLeft = _timeLeft();
+        if (timeLeft > 0) {
             phases[currentPhase - 1].totalContribution += timeLeft * stakeAmount;
             userContributionInPhase[msg.sender][currentPhase - 1] += timeLeft * stakeAmount;
         }
