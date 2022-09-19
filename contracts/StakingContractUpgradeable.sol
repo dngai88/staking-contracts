@@ -34,6 +34,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
 
     event PhaseStarted(uint256 indexed currentPhase, uint256 duration);
     event UserStaked(address indexed user, uint256 amount);
+    event UserUnstaked(address indexed user, uint256 amount);
 
     function initialize(address stakeToken_, address rewardToken_) public initializer {
         stakeToken = IERC20Upgradeable(stakeToken_);
@@ -69,6 +70,20 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         userStake[msg.sender] += stakeAmount;
 
         emit UserStaked(msg.sender, stakeAmount);
+    }
+
+    function unstake(uint256 unstakeAmount) public {
+        _updateUserContribution(msg.sender);    
+        uint256 timeLeft = _timeLeft();
+        if (timeLeft > 0) {
+            phases[currentPhase - 1].totalContribution -= timeLeft * unstakeAmount;
+            userContributionInPhase[msg.sender][currentPhase - 1] -= timeLeft * unstakeAmount;
+        }
+        stakeToken.safeTransfer(msg.sender, unstakeAmount);
+        totalStake -= unstakeAmount;
+        userStake[msg.sender] -= unstakeAmount;
+
+        emit UserUnstaked(msg.sender, unstakeAmount);
     }
 
     function _updateUserContribution(address user) internal {
