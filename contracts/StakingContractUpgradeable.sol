@@ -13,6 +13,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         uint256 startTime;
         uint256 duration;
         uint256 totalReward;
+        uint256 totalClaimed;
         uint256 totalContribution;
     }
 
@@ -24,7 +25,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     mapping(address => uint256) phaseCalculated;
 
     //Reward user got for each phase, non-zero mean user got reward
-    mapping(address => uint256) rewardUserGotInPhase;
+    mapping(address => mapping(uint256 => uint256)) rewardUserGotInPhase;
 
     uint256 public currentPhase;
     uint256 public totalStake;
@@ -35,6 +36,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     event PhaseStarted(uint256 indexed currentPhase, uint256 duration);
     event UserStaked(address indexed user, uint256 amount);
     event UserUnstaked(address indexed user, uint256 amount);
+    event RewardClaimed(address indexed user, uint256 indexed phase, uint256 amount);
 
     function initialize(address stakeToken_, address rewardToken_) public initializer {
         stakeToken = IERC20Upgradeable(stakeToken_);
@@ -91,6 +93,22 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         userStake[msg.sender] -= unstakeAmount;
 
         emit UserUnstaked(msg.sender, unstakeAmount);
+    }
+
+    function claimReward(uint256 phase) external {
+        _updateUserContribution(msg.sender);
+        require(phase < currentPhase, "claimReward::phase not found");
+        require(phases[phase].startTime + phases[phase].duration <= block.timestamp, "claimReward::phase not ended");
+        require(phases[phase].totalReward > 0, "claimReward::phase not fund");
+        require(rewardUserGotInPhase[msg.sender][phase] == 0, "claimReward::user claimed");
+        (uint256 userContribution, uint256 totalContribution) = userContributionInPhase(msg.sender, phase);
+        uint256 reward = phases[phase].totalReward * userContribution / totalContribution;
+        require(reward > 0, "claimReward::zero reward");
+        rewardUserGotInPhase[msg.sender][phase] = reward;
+        phases[phase].totalClaimed += reward;
+        rewardToken.safeTransfer(msg.sender, reward);
+
+        emit RewardClaimed(msg.sender, phase, reward);
     }
 
     function _updateUserContribution(address user) internal {
