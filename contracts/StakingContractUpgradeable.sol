@@ -25,22 +25,30 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     mapping(address => uint256) rewardUserGotInPhase;
 
     uint256 public currentPhase;
+    uint256 public totalStake;
 
     IERC20Upgradeable stakeToken;
     IERC20Upgradeable rewardToken;
 
-    event PhaseStarted(uint256 indexed currentPhase);
+    event PhaseStarted(uint256 indexed currentPhase, uint256 duration);
 
     function initialize(address stakeToken_, address rewardToken_) public initializer {
         stakeToken = IERC20Upgradeable(stakeToken_);
         rewardToken = IERC20Upgradeable(rewardToken_);
     }
 
-    function startPhase() external onlyOwner {
-        require(currentPhase == 0 || phases[currentPhase - 1].endTime != 0, "startPhase::Previous phase not ended");
+    function startPhase(uint256 duration_) external onlyOwner {
+        require(
+            currentPhase == 0 
+            || phases[currentPhase - 1].startTime + phases[currentPhase - 1].duration < block.timestamp,
+            "startPhase::Previous phase not ended"
+        );
         PhaseInfo storage currentPhaseInfo = phases[currentPhase];
         currentPhaseInfo.startTime = block.timestamp;
+        currentPhaseInfo.duration = duration_;
+        currentPhaseInfo.totalContribution = totalStake * duration_;
 
-        emit PhaseStarted(currentPhase);
+        currentPhase += 1;
+        emit PhaseStarted(currentPhase, duration_);
     }
 }
