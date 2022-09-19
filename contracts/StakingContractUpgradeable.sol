@@ -11,9 +11,9 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
 
     struct PhaseInfo {
         uint256 startTime;
-        uint256 endTime;
+        uint256 duration;
         uint256 totalReward;
-        uint256 totalDistribution;
+        uint256 totalContribution;
     }
 
     PhaseInfo[] public phases;
