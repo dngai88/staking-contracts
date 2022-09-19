@@ -104,7 +104,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     function _calculateUserContribution(address user) internal view returns (uint256[] memory) {
         uint256[] memory result = new uint256[](currentPhase);
         for (uint256 i = 0; i < phaseCalculated[user]; i++) {
-            result[i] = userContributionInPhase[user][i];
+            result[i] = _userContributionInPhase[user][i];
         }
 
         for (uint256 i = phaseCalculated[user]; i < currentPhase; i++) {
