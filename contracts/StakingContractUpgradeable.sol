@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
-    using SafeERC20Upgradeable for IERC20PermitUpgradeable;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     struct PhaseInfo {
         uint256 startTime;
@@ -64,6 +64,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
             userContributionInPhase[msg.sender][currentPhase - 1] += timeLeft * stakeAmount;
         }
 
+        stakeToken.safeTransfer(address(this), stakeAmount);
         totalStake += stakeAmount;
         userStake[msg.sender] += stakeAmount;
 
