@@ -57,7 +57,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
 
     function stake(uint256 stakeAmount) public {
         for (uint256 i = phaseCalculated[msg.sender]; i < currentPhase; i++) {
-            userContributionInPhase[msg.sender][i]+= userStake[msg.sender] * phases[i].duration;
+            userContributionInPhase[msg.sender][i]= userStake[msg.sender] * phases[i].duration;
         }
         phaseCalculated[msg.sender] = currentPhase;
 
@@ -71,6 +71,14 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         userStake[msg.sender] += stakeAmount;
 
         emit UserStaked(msg.sender, stakeAmount);
+    }
+
+    function _updateUserContribution(address user) internal {
+        uint256[] memory result = _calculateUserContribution(user);
+        for (uint256 i = phaseCalculated[user]; i < currentPhase; i++) {
+            userContributionInPhase[user][i] = result[i];
+        }
+        phaseCalculated[user] = currentPhase;
     }
 
     function _calculateUserContribution(address user) internal view returns (uint256[] memory) {
