@@ -21,7 +21,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     //Distribution of user for each phase
     mapping(address => mapping(uint256 => uint256)) userContributionInPhase;
     mapping(address => uint256) userStake;
-    mapping(address => uint256) phaseNotCalculated;
+    mapping(address => uint256) phaseCalculated;
 
     //Reward user got for each phase, non-zero mean user got reward
     mapping(address => uint256) rewardUserGotInPhase;
@@ -56,10 +56,10 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     }
 
     function stake(uint256 stakeAmount) public {
-        for (uint256 i = phaseNotCalculated[msg.sender]; i < currentPhase; i++) {
+        for (uint256 i = phaseCalculated[msg.sender]; i < currentPhase; i++) {
             userContributionInPhase[msg.sender][i]+= userStake[msg.sender] * phases[i].duration;
         }
-        phaseNotCalculated[msg.sender] = currentPhase;
+        phaseCalculated[msg.sender] = currentPhase;
 
         if (phases[currentPhase - 1].startTime <= block.timestamp && phases[currentPhase - 1].startTime + phases[currentPhase - 1].duration >= block.timestamp) {
             uint256 timeLeft = phases[currentPhase - 1].duration - (block.timestamp - phases[currentPhase - 1].startTime);
@@ -71,5 +71,17 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         userStake[msg.sender] += stakeAmount;
 
         emit UserStaked(msg.sender, stakeAmount);
+    }
+
+    function _calculateUserContribution(address user) internal view returns (uint256[] memory) {
+        uint256[] memory result = new uint256[](currentPhase);
+        for (uint256 i = 0; i < phaseCalculated[user]; i++) {
+            result[i] = userContributionInPhase[user][i];
+        }
+
+        for (uint256 i = phaseCalculated[user]; i < currentPhase; i++) {
+            result[i] = userStake[user] * phases[i].duration;
+        }
+        return result;
     }
 }
