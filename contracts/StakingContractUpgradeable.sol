@@ -56,10 +56,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     }
 
     function stake(uint256 stakeAmount) public {
-        for (uint256 i = phaseCalculated[msg.sender]; i < currentPhase; i++) {
-            userContributionInPhase[msg.sender][i]= userStake[msg.sender] * phases[i].duration;
-        }
-        phaseCalculated[msg.sender] = currentPhase;
+        _updateUserContribution(msg.sender);
 
         if (phases[currentPhase - 1].startTime <= block.timestamp && phases[currentPhase - 1].startTime + phases[currentPhase - 1].duration >= block.timestamp) {
             uint256 timeLeft = phases[currentPhase - 1].duration - (block.timestamp - phases[currentPhase - 1].startTime);
@@ -91,5 +88,18 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
             result[i] = userStake[user] * phases[i].duration;
         }
         return result;
+    }
+
+    /**
+     @notice Calculate how time left in current live phase, if no live phase return 0
+     @dev Use for calculate how much contribution is added or subtracted
+     */
+    function _timeLeft() private view returns (uint256) {
+        PhaseInfo memory currentPhaseInfo = phases[currentPhase - 1];
+        if (currentPhaseInfo.startTime <= block.timestamp && currentPhaseInfo.startTime + currentPhaseInfo.duration > block.timestamp) {
+            return currentPhaseInfo.duration - (block.timestamp - currentPhaseInfo.startTime);
+        } else {
+            return 0;
+        }
     }
 }
