@@ -19,7 +19,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     PhaseInfo[] public phases;
 
     //Distribution of user for each phase
-    mapping(address => mapping(uint256 => uint256)) userContributionInPhase;
+    mapping(address => mapping(uint256 => uint256)) private _userContributionInPhase;
     mapping(address => uint256) userStake;
     mapping(address => uint256) phaseCalculated;
 
@@ -41,6 +41,13 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         rewardToken = IERC20Upgradeable(rewardToken_);
     }
 
+    function userContributionInPhase(address user, uint256 phase) public view returns (uint256 userContribution, uint256 totalContribution) {
+        require(phase < currentPhase, "userContribution::phase not found");
+        uint256[] memory _userContribution = _calculateUserContribution(user);
+        userContribution = _userContribution[phase];
+        totalContribution = phases[phase].totalContribution;
+    }
+    
     function startPhase(uint256 duration_) external onlyOwner {
         require(
             currentPhase == 0 
@@ -62,7 +69,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         uint256 timeLeft = _timeLeft();
         if (timeLeft > 0) {
             phases[currentPhase - 1].totalContribution += timeLeft * stakeAmount;
-            userContributionInPhase[msg.sender][currentPhase - 1] += timeLeft * stakeAmount;
+            _userContributionInPhase[msg.sender][currentPhase - 1] += timeLeft * stakeAmount;
         }
 
         stakeToken.safeTransfer(address(this), stakeAmount);
@@ -77,7 +84,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         uint256 timeLeft = _timeLeft();
         if (timeLeft > 0) {
             phases[currentPhase - 1].totalContribution -= timeLeft * unstakeAmount;
-            userContributionInPhase[msg.sender][currentPhase - 1] -= timeLeft * unstakeAmount;
+            _userContributionInPhase[msg.sender][currentPhase - 1] -= timeLeft * unstakeAmount;
         }
         stakeToken.safeTransfer(msg.sender, unstakeAmount);
         totalStake -= unstakeAmount;
@@ -89,7 +96,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     function _updateUserContribution(address user) internal {
         uint256[] memory result = _calculateUserContribution(user);
         for (uint256 i = phaseCalculated[user]; i < currentPhase; i++) {
-            userContributionInPhase[user][i] = result[i];
+            _userContributionInPhase[user][i] = result[i];
         }
         phaseCalculated[user] = currentPhase;
     }
