@@ -50,6 +50,12 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         userContribution = _userContribution[phase];
         totalContribution = phases[phase].totalContribution;
     }
+
+    function rewardInPhase(address user, uint256 phase) public view returns (uint256 reward) {
+        (uint256 userContribution, uint256 totalContribution) = userContributionInPhase(user, phase);
+        require(phases[phase].totalReward > 0, "claimReward::phase not fund");
+        reward = phases[phase].totalReward * userContribution / totalContribution;
+    }
     
     function stake(uint256 stakeAmount) public {
         _updateUserContribution(msg.sender);
@@ -85,10 +91,8 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         _updateUserContribution(msg.sender);
         require(phase < currentPhase, "claimReward::phase not found");
         require(phases[phase].startTime + phases[phase].duration <= block.timestamp, "claimReward::phase not ended");
-        require(phases[phase].totalReward > 0, "claimReward::phase not fund");
         require(rewardUserGotInPhase[msg.sender][phase] == 0, "claimReward::user claimed");
-        (uint256 userContribution, uint256 totalContribution) = userContributionInPhase(msg.sender, phase);
-        uint256 reward = phases[phase].totalReward * userContribution / totalContribution;
+        uint256 reward = rewardInPhase(msg.sender, phase);
         require(reward > 0, "claimReward::zero reward");
         rewardUserGotInPhase[msg.sender][phase] = reward;
         phases[phase].totalClaimed += reward;
