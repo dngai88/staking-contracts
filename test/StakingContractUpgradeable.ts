@@ -96,6 +96,8 @@ context(`StakingContractUpgradeable`, async () => {
         const { userContribution: user2Contribution, totalContribution: total2Contribution } = await stakingContract.userContributionInPhase(account2.address, 0);
         expect(total1Contribution).to.be.equal(total2Contribution);
         expect(withinRange(total1Contribution, stakeAmountAccount1.mul(phaseDuration).add(stakeAmountAccount2.mul(phaseDuration / 2))));
+        expect(user1Contribution).to.be.equal(stakeAmountAccount1.mul(phaseDuration));
+        expect(withinRange(user2Contribution, stakeAmountAccount2.mul(phaseDuration / 2)));
     })
   })
 })
