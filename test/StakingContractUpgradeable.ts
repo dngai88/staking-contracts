@@ -61,6 +61,15 @@ context(`StakingContractUpgradeable`, async () => {
         const totalStake = await stakingContract.totalStake();
         expect(userStake).to.be.equal(stakeAmountAccount1);
         expect(totalStake).to.be.equal(stakeAmountAccount1);
+    });
+
+    it(`Balance change success when stake`, async () => {
+        await expect(stakingContract.connect(account1).stake(stakeAmountAccount1))
+            .to.changeTokenBalances(
+                everM,
+                [stakingContract, account1],
+                [stakeAmountAccount1, stakeAmountAccount1.mul(-1)],
+            );
     })
   })
 })
