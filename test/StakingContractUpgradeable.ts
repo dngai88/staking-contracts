@@ -30,10 +30,37 @@ context(`StakingContractUpgradeable`, async () => {
     expect(stakingContract.address).to.be.properAddress;
   })
 
+  async function approve(account: SignerWithAddress) {
+    await everM.connect(admin).transfer(account.address, expandTo18Decimals(1000000));
+    await everM.connect(account).approve(stakingContract.address, expandTo18Decimals(1000000));
+  }
+
   context(`Start new phase`, async () => {
+    let phaseDuration: number;
+    let stakeAmountAccount1: BigNumber, stakeAmountAccount2: BigNumber;
+
+    beforeEach(async () => {
+      phaseDuration = 864000;
+      stakeAmountAccount1 = expandTo18Decimals(1000);
+      await approve(account1);
+    })
+
     it(`Only admin can start new phase`, async () => {
-      await expect(stakingContract.connect(account1).startPhase(1))
+      await expect(stakingContract.connect(account1).startPhase(phaseDuration))
         .to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it(`Total stake correct before start a phase`, async () => {
+        const userBalance = await everM.balanceOf(account1.address);
+        console.log(`userBalance ${userBalance}`);
+        await expect(stakingContract.connect(account1).stake(stakeAmountAccount1))
+            .to.be.emit(stakingContract, "UserStaked")
+            .withArgs(account1.address, stakeAmountAccount1);
+
+        const userStake = await stakingContract.userStake(account1.address);
+        const totalStake = await stakingContract.totalStake();
+        expect(userStake).to.be.equal(stakeAmountAccount1);
+        expect(totalStake).to.be.equal(stakeAmountAccount1);
     })
   })
 })

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
@@ -21,17 +21,17 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
 
     //Distribution of user for each phase
     mapping(address => mapping(uint256 => uint256)) private _userContributionInPhase;
-    mapping(address => uint256) userStake;
+    mapping(address => uint256) public userStake;
     mapping(address => uint256) phaseCalculated;
 
     //Reward user got for each phase, non-zero mean user got reward
-    mapping(address => mapping(uint256 => uint256)) rewardUserGotInPhase;
+    mapping(address => mapping(uint256 => uint256)) public rewardUserGotInPhase;
 
     uint256 public currentPhase;
     uint256 public totalStake;
 
-    IERC20Upgradeable stakeToken;
-    IERC20Upgradeable rewardToken;
+    IERC20Upgradeable public stakeToken;
+    IERC20Upgradeable public rewardToken;
 
     event PhaseStarted(uint256 indexed currentPhase, uint256 duration);
     event UserStaked(address indexed user, uint256 amount);
@@ -66,7 +66,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
             _userContributionInPhase[msg.sender][currentPhase - 1] += timeLeft * stakeAmount;
         }
 
-        stakeToken.safeTransfer(address(this), stakeAmount);
+        stakeToken.safeTransferFrom(msg.sender, address(this), stakeAmount);
         totalStake += stakeAmount;
         userStake[msg.sender] += stakeAmount;
 
@@ -150,6 +150,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
      @dev Use for calculate how much contribution is added or subtracted
      */
     function _timeLeft() private view returns (uint256) {
+        if (currentPhase == 0) return 0;
         PhaseInfo memory currentPhaseInfo = phases[currentPhase - 1];
         if (currentPhaseInfo.startTime <= block.timestamp && currentPhaseInfo.startTime + currentPhaseInfo.duration > block.timestamp) {
             return currentPhaseInfo.duration - (block.timestamp - currentPhaseInfo.startTime);
