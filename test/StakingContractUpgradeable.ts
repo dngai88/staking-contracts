@@ -71,5 +71,12 @@ context(`StakingContractUpgradeable`, async () => {
                 [stakeAmountAccount1, stakeAmountAccount1.mul(-1)],
             );
     })
+
+    it(`Start a phase success`, async () => {
+        await expect(stakingContract.connect(admin).startPhase(phaseDuration))
+            .to.be.emit(stakingContract, "PhaseStarted")
+            .withArgs(1, phaseDuration);
+            
+    })
   })
 })

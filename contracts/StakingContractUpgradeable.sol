@@ -42,6 +42,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
     function initialize(address stakeToken_, address rewardToken_) public initializer {
         stakeToken = IERC20Upgradeable(stakeToken_);
         rewardToken = IERC20Upgradeable(rewardToken_);
+        __Ownable_init();
     }
 
     function userContributionInPhase(address user, uint256 phase) public view returns (uint256 userContribution, uint256 totalContribution) {
@@ -107,6 +108,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
             || phases[currentPhase - 1].startTime + phases[currentPhase - 1].duration < block.timestamp,
             "startPhase::Previous phase not ended"
         );
+        phases.push(PhaseInfo(0, 0, 0, 0, 0));
         PhaseInfo storage currentPhaseInfo = phases[currentPhase];
         currentPhaseInfo.startTime = block.timestamp;
         currentPhaseInfo.duration = duration_;
