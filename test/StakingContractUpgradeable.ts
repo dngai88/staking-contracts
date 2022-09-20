@@ -42,7 +42,9 @@ context(`StakingContractUpgradeable`, async () => {
     beforeEach(async () => {
       phaseDuration = 864000;
       stakeAmountAccount1 = expandTo18Decimals(1000);
+      stakeAmountAccount2 = expandTo18Decimals(4000);
       await approve(account1);
+      await approve(account2);
     })
 
     it(`Only admin can start new phase`, async () => {
@@ -82,6 +84,18 @@ context(`StakingContractUpgradeable`, async () => {
         const { userContribution, totalContribution } = await stakingContract.userContributionInPhase(account1.address, 0);
         expect(userContribution).to.be.equal(stakeAmountAccount1.mul(phaseDuration));
         expect(totalContribution).to.be.equal(stakeAmountAccount1.mul(phaseDuration));
+    })
+
+    it(`Contribution correct`, async () => {
+        await stakingContract.connect(account1).stake(stakeAmountAccount1);
+        await stakingContract.connect(admin).startPhase(phaseDuration);
+        await mine(phaseDuration / 2 - 2);
+        await stakingContract.connect(account2).stake(stakeAmountAccount2);
+        await mine(phaseDuration / 2);
+        const { userContribution: user1Contribution, totalContribution: total1Contribution } = await stakingContract.userContributionInPhase(account1.address, 0);
+        const { userContribution: user2Contribution, totalContribution: total2Contribution } = await stakingContract.userContributionInPhase(account2.address, 0);
+        expect(total1Contribution).to.be.equal(total2Contribution);
+        expect(withinRange(total1Contribution, stakeAmountAccount1.mul(phaseDuration).add(stakeAmountAccount2.mul(phaseDuration / 2))));
     })
   })
 })
