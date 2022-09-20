@@ -51,8 +51,6 @@ context(`StakingContractUpgradeable`, async () => {
     });
 
     it(`Total stake correct before start a phase`, async () => {
-        const userBalance = await everM.balanceOf(account1.address);
-        console.log(`userBalance ${userBalance}`);
         await expect(stakingContract.connect(account1).stake(stakeAmountAccount1))
             .to.be.emit(stakingContract, "UserStaked")
             .withArgs(account1.address, stakeAmountAccount1);
@@ -76,7 +74,14 @@ context(`StakingContractUpgradeable`, async () => {
         await expect(stakingContract.connect(admin).startPhase(phaseDuration))
             .to.be.emit(stakingContract, "PhaseStarted")
             .withArgs(1, phaseDuration);
-            
+    })
+
+    it(`Start new phase, contribution success`, async () => {
+        await stakingContract.connect(account1).stake(stakeAmountAccount1);
+        await stakingContract.connect(admin).startPhase(phaseDuration);
+        const { userContribution, totalContribution } = await stakingContract.userContributionInPhase(account1.address, 0);
+        expect(userContribution).to.be.equal(stakeAmountAccount1.mul(phaseDuration));
+        expect(totalContribution).to.be.equal(stakeAmountAccount1.mul(phaseDuration));
     })
   })
 })
