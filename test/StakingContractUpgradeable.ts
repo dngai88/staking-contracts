@@ -100,4 +100,32 @@ context(`StakingContractUpgradeable`, async () => {
         expect(withinRange(user2Contribution, stakeAmountAccount2.mul(phaseDuration / 2)));
     })
   })
+
+  context(`Contribution correctly after multiple phases`, async () => {
+    let phase1Duration: number, phase2Duration: number, phase3Duration: number;
+    let stakeAmount1Account1: BigNumber, stakeAmount2Account1: BigNumber, stakeAmountAccount2: BigNumber;
+
+    beforeEach(async () => {
+        phase1Duration = 864000;
+        phase2Duration = 1728000;
+        phase3Duration = 7776000;
+        stakeAmount1Account1 = expandTo18Decimals(1000);
+        stakeAmount2Account1 = expandTo18Decimals(2000);
+        stakeAmountAccount2 = expandTo18Decimals(4000);
+        await approve(account1);
+        await approve(account2);
+        await stakingContract.connect(account1).stake(stakeAmount1Account1);
+        await stakingContract.connect(admin).startPhase(phase1Duration);
+        await mine(phase1Duration);
+    })
+
+    it(`Contribution correct after multiple phase passed`, async () => {
+        await stakingContract.connect(admin).startPhase(phase2Duration);
+        await mine(phase2Duration);
+        const { userContribution: userContribution1, totalContribution: totalContribution1 } = await stakingContract.userContributionInPhase(account1.address, 0);
+        const { userContribution: userContribution2, totalContribution: totalContribution2 } = await stakingContract.userContributionInPhase(account1.address, 1);
+        expect(userContribution1).to.be.equal(stakeAmount1Account1.mul(phase1Duration));
+        expect(userContribution2).to.be.equal(stakeAmount1Account1.mul(phase2Duration));
+    })
+  })
 })
