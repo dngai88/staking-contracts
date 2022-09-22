@@ -197,4 +197,45 @@ context(`StakingContractUpgradeable`, async () => {
         );
     })
   })
+
+  context(`User unstake`, async () => {
+    let phase1Duration: number, phase2Duration: number, phase3Duration: number;
+    let stakeAmount1Account1: BigNumber, stakeAmount2Account1: BigNumber, stakeAmount3Account1: BigNumber, stakeAmount1Account2: BigNumber;
+
+    beforeEach(async () => {
+        phase1Duration = 864000;
+        phase2Duration = 1728000;
+        phase3Duration = 7776000;
+        stakeAmount1Account1 = expandTo18Decimals(1000);
+        stakeAmount2Account1 = expandTo18Decimals(2000);
+        stakeAmount3Account1 = expandTo18Decimals(4000);
+        stakeAmount1Account2 = expandTo18Decimals(4000);
+        await approve(account1);
+        await approve(account2);
+        await stakingContract.connect(account1).stake(stakeAmount1Account1);
+        await stakingContract.connect(admin).startPhase(phase1Duration);
+        await mine(phase1Duration);
+    })
+
+    it(`User stake emit event`, async () => {
+        await expect(stakingContract.connect(account1).unstake(stakeAmount1Account1))
+            .to.be.emit(stakingContract, "UserUnstaked")
+            .withArgs(account1.address, stakeAmount1Account1);
+    })
+
+    it(`User unstake success`, async () => {
+        const stakeAmountUnstake = stakeAmount1Account1.div(4);
+        const remainStake = stakeAmount1Account1.sub(stakeAmountUnstake);
+        await expect(() => stakingContract.connect(account1).unstake(stakeAmountUnstake))
+            .to.changeTokenBalances(
+                everM,
+                [stakingContract, account1],
+                [stakeAmountUnstake.mul(-1), stakeAmountUnstake],
+            );
+        const userStake = await stakingContract.userStake(account1.address);
+        const totalStake = await stakingContract.totalStake();
+        expect(userStake).to.be.equal(totalStake);
+        expect(userStake).to.be.equal(remainStake);
+    })
+  })
 })
