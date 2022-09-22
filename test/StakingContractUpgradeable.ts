@@ -268,7 +268,7 @@ context(`StakingContractUpgradeable`, async () => {
   context(`User claim reward`, async () => {
     let phase1Duration: number, phase2Duration: number, phase3Duration: number;
     let stakeAmount1Account1: BigNumber, stakeAmount2Account1: BigNumber, stakeAmount3Account1: BigNumber, stakeAmount1Account2: BigNumber;
-    let phase1Fund: BigNumber;
+    let phase1Fund: BigNumber, phase2Fund: BigNumber;
 
     beforeEach(async () => {
         phase1Duration = 864000;
@@ -279,8 +279,11 @@ context(`StakingContractUpgradeable`, async () => {
         stakeAmount3Account1 = expandTo18Decimals(4000);
         stakeAmount1Account2 = expandTo18Decimals(4000);
         phase1Fund = expandToDecimals(200, 6);
+        phase2Fund = expandToDecimals(300, 6);
         await approve(account1);
         await approve(account2);
+        await weth.connect(admin).mint(admin.address, expandToDecimals(1000000, 6));
+        await weth.connect(admin).approve(stakingContract.address, expandToDecimals(1000000, 6));
         await stakingContract.connect(account1).stake(stakeAmount1Account1);
         await stakingContract.connect(admin).startPhase(phase1Duration);
         await mine(phase1Duration);
@@ -301,6 +304,44 @@ context(`StakingContractUpgradeable`, async () => {
                 [stakingContract, account1],
                 [phase1Fund.mul(-1), phase1Fund],
             );
+    })
+
+    it(`User cant get reward twice`, async () => {
+        await stakingContract.connect(admin).fundPhase(0, phase1Fund);
+        await stakingContract.connect(account1).claimReward(0);
+        await expect(stakingContract.connect(account1).claimReward(0))
+            .to.be.revertedWith("claimReward::user claimed");
+    })
+
+    it(`User get reward correctly`, async () => {
+        await stakingContract.connect(account2).stake(stakeAmount1Account2);
+        await stakingContract.connect(admin).startPhase(phase2Duration);
+        await stakingContract.connect(admin).fundPhase(1, phase2Fund);
+        await mine(phase2Duration);
+        const expectedUser1Reward = phase2Fund.mul(stakeAmount1Account1).div(stakeAmount1Account1.add(stakeAmount1Account2));
+        const expectedUser2Reward = phase2Fund.mul(stakeAmount1Account2).div(stakeAmount1Account1.add(stakeAmount1Account2));
+        await expect(() => stakingContract.connect(account1).claimReward(1))
+            .to.be.changeTokenBalances(
+                weth,
+                [stakingContract, account1],
+                [expectedUser1Reward.mul(-1), expectedUser1Reward],
+            )
+        await expect(() => stakingContract.connect(account2).claimReward(1))
+            .to.be.changeTokenBalances(
+                weth,
+                [stakingContract, account2],
+                [expectedUser2Reward.mul(-1), expectedUser2Reward],
+            )
+    })
+
+    it(`User cant claim reward if they dont stake`, async () => {
+        await stakingContract.connect(account2).stake(stakeAmount1Account2);
+        await stakingContract.connect(admin).startPhase(phase2Duration);
+        await stakingContract.connect(admin).fundPhase(1, phase2Fund);
+        await stakingContract.connect(admin).fundPhase(0, phase1Fund);
+        await mine(phase2Duration);
+        await expect(stakingContract.connect(account2).claimReward(0))
+            .to.be.revertedWith("claimReward::zero reward");
     })
   })
 })
