@@ -159,4 +159,42 @@ context(`StakingContractUpgradeable`, async () => {
         expect(totalContribution3).to.be.equal(userContribution3);
     })
   })
+
+  context(`Two user stake`, async () => {
+    let phase1Duration: number, phase2Duration: number, phase3Duration: number;
+    let stakeAmount1Account1: BigNumber, stakeAmount2Account1: BigNumber, stakeAmount3Account1: BigNumber, stakeAmount1Account2: BigNumber;
+
+    beforeEach(async () => {
+        phase1Duration = 864000;
+        phase2Duration = 1728000;
+        phase3Duration = 7776000;
+        stakeAmount1Account1 = expandTo18Decimals(1000);
+        stakeAmount2Account1 = expandTo18Decimals(2000);
+        stakeAmount3Account1 = expandTo18Decimals(4000);
+        stakeAmount1Account2 = expandTo18Decimals(4000);
+        await approve(account1);
+        await approve(account2);
+        await stakingContract.connect(account1).stake(stakeAmount1Account1);
+        await stakingContract.connect(admin).startPhase(phase1Duration);
+        await mine(phase1Duration);
+    })
+
+    it(`Contribution correct when another account stake`, async () => {
+        await stakingContract.connect(account2).stake(stakeAmount1Account2);
+        await stakingContract.connect(admin).startPhase(phase2Duration);
+
+        const { userContribution: user1Contribution1, totalContribution: total1Contribution1 } = await stakingContract.userContributionInPhase(account1.address, 0);
+        const { userContribution: user1Contribution2, totalContribution: total1Contribution2 } = await stakingContract.userContributionInPhase(account1.address, 1);
+        const { userContribution: user2Contribution1, totalContribution: total2Contribution1 } = await stakingContract.userContributionInPhase(account2.address, 0);
+        const { userContribution: user2Contribution2, totalContribution: total2Contribution2 } = await stakingContract.userContributionInPhase(account2.address, 1);
+        expect(user1Contribution2).to.be.equal(stakeAmount1Account1.mul(phase2Duration));
+        expect(user2Contribution1).to.be.equal(0);
+        expect(user2Contribution2).to.be.equal(stakeAmount1Account2.mul(phase2Duration));
+        expect(total1Contribution2).to.be.equal(total2Contribution2);
+        expect(total2Contribution2).to.be.equal(
+            stakeAmount1Account1.mul(phase2Duration)
+            .add(stakeAmount1Account2.mul(phase2Duration))
+        );
+    })
+  })
 })
