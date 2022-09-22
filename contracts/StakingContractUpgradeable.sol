@@ -155,7 +155,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         if (currentPhase == 0) return 0;
         PhaseInfo memory currentPhaseInfo = phases[currentPhase - 1];
         if (currentPhaseInfo.startTime <= block.timestamp && currentPhaseInfo.startTime + currentPhaseInfo.duration > block.timestamp) {
-            return currentPhaseInfo.duration - (block.timestamp - currentPhaseInfo.startTime + 1);
+            return currentPhaseInfo.duration - (block.timestamp - currentPhaseInfo.startTime);
         } else {
             return 0;
         }

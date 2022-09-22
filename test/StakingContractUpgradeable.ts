@@ -35,7 +35,7 @@ context(`StakingContractUpgradeable`, async () => {
     await everM.connect(account).approve(stakingContract.address, expandTo18Decimals(1000000));
   }
 
-  xcontext(`Start new phase`, async () => {
+  context(`Start new phase`, async () => {
     let phaseDuration: number;
     let stakeAmountAccount1: BigNumber, stakeAmountAccount2: BigNumber;
 
@@ -89,7 +89,7 @@ context(`StakingContractUpgradeable`, async () => {
     it(`Contribution correct`, async () => {
         await stakingContract.connect(account1).stake(stakeAmountAccount1);
         await stakingContract.connect(admin).startPhase(phaseDuration);
-        await mine(phaseDuration / 2 - 2);
+        await mine(phaseDuration / 2 - 1);
         await stakingContract.connect(account2).stake(stakeAmountAccount2);
         await mine(phaseDuration / 2);
         const { userContribution: user1Contribution, totalContribution: total1Contribution } = await stakingContract.userContributionInPhase(account1.address, 0);
@@ -143,7 +143,7 @@ context(`StakingContractUpgradeable`, async () => {
         await stakingContract.connect(admin).startPhase(phase2Duration);
         await mine(phase2Duration);
         await stakingContract.connect(admin).startPhase(phase3Duration);
-        await mine(phase3Duration / 4 - 2);
+        await mine(phase3Duration / 4 - 1);
         await stakingContract.connect(account1).stake(stakeAmount3Account1);
 
         const { userContribution: userContribution1, totalContribution: totalContribution1 } = await stakingContract.userContributionInPhase(account1.address, 0);
