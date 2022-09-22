@@ -122,7 +122,7 @@ contract StakingContractUpgradeable is Initializable, OwnableUpgradeable {
         require(phase < currentPhase, "fundPhase::phase not found");
         require(phases[phase].totalReward == 0, "fundPhase::phase funded");
         phases[phase].totalReward = fundAmount;
-        rewardToken.safeTransfer(address(this), fundAmount);
+        rewardToken.safeTransferFrom(msg.sender, address(this), fundAmount);(address(this), fundAmount);
 
         emit PhaseFunded(phase, fundAmount);
     }

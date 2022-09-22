@@ -264,4 +264,43 @@ context(`StakingContractUpgradeable`, async () => {
         })
     })
   })
+
+  context(`User claim reward`, async () => {
+    let phase1Duration: number, phase2Duration: number, phase3Duration: number;
+    let stakeAmount1Account1: BigNumber, stakeAmount2Account1: BigNumber, stakeAmount3Account1: BigNumber, stakeAmount1Account2: BigNumber;
+    let phase1Fund: BigNumber;
+
+    beforeEach(async () => {
+        phase1Duration = 864000;
+        phase2Duration = 1728000;
+        phase3Duration = 7776000;
+        stakeAmount1Account1 = expandTo18Decimals(1000);
+        stakeAmount2Account1 = expandTo18Decimals(2000);
+        stakeAmount3Account1 = expandTo18Decimals(4000);
+        stakeAmount1Account2 = expandTo18Decimals(4000);
+        phase1Fund = expandToDecimals(200, 6);
+        await approve(account1);
+        await approve(account2);
+        await stakingContract.connect(account1).stake(stakeAmount1Account1);
+        await stakingContract.connect(admin).startPhase(phase1Duration);
+        await mine(phase1Duration);
+    })
+
+    it(`Cant get reward if phase not funded`, async () => {
+        await expect(stakingContract.connect(account1).claimReward(0))
+            .to.be.revertedWith("claimReward::phase not fund");
+    });
+
+    it(`User get reward after phase funded`, async () => {
+        await weth.connect(admin).mint(admin.address, expandToDecimals(1000000, 6));
+        await weth.connect(admin).approve(stakingContract.address, phase1Fund);
+        await stakingContract.connect(admin).fundPhase(0, phase1Fund);
+        await expect(() => stakingContract.connect(account1).claimReward(0))
+            .to.be.changeTokenBalances(
+                weth,
+                [stakingContract, account1],
+                [phase1Fund.mul(-1), phase1Fund],
+            );
+    })
+  })
 })
