@@ -261,6 +261,7 @@ context(`StakingContractUpgradeable`, async () => {
                 stakeAmount1Account1.mul(phase3Duration / 4)
                 .add(remainStake.mul(phase3Duration).mul(3).div(4))
             )
+            expect(totalContribution).to.be.equal(userContribution);
         })
     })
   })
