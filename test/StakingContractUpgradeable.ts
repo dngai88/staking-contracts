@@ -35,7 +35,7 @@ context(`StakingContractUpgradeable`, async () => {
     await everM.connect(account).approve(stakingContract.address, expandTo18Decimals(1000000));
   }
 
-  context(`Start new phase`, async () => {
+  xcontext(`Start new phase`, async () => {
     let phaseDuration: number;
     let stakeAmountAccount1: BigNumber, stakeAmountAccount2: BigNumber;
 
@@ -126,6 +126,15 @@ context(`StakingContractUpgradeable`, async () => {
         const { userContribution: userContribution2, totalContribution: totalContribution2 } = await stakingContract.userContributionInPhase(account1.address, 1);
         expect(userContribution1).to.be.equal(stakeAmount1Account1.mul(phase1Duration));
         expect(userContribution2).to.be.equal(stakeAmount1Account1.mul(phase2Duration));
+    })
+
+    it(`Contribution correct after staking one phase after`, async () => {
+        await stakingContract.connect(account1).stake(stakeAmount2Account1);
+        await stakingContract.connect(admin).startPhase(phase2Duration);
+        const { userContribution: userContribution1, totalContribution: totalContribution1 } = await stakingContract.userContributionInPhase(account1.address, 0);
+        const { userContribution: userContribution2, totalContribution: totalContribution2 } = await stakingContract.userContributionInPhase(account1.address, 1);
+        expect(userContribution1).to.be.equal(stakeAmount1Account1.mul(phase1Duration), "Phase 1 incorrect");
+        expect(userContribution2).to.be.equal((stakeAmount1Account1.add(stakeAmount2Account1)).mul(phase2Duration), "Phase 2 incorrect");
     })
   })
 })
