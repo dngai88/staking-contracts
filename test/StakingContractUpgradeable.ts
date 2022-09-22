@@ -35,7 +35,7 @@ context(`StakingContractUpgradeable`, async () => {
     await everM.connect(account).approve(stakingContract.address, expandTo18Decimals(1000000));
   }
 
-  context(`Start new phase`, async () => {
+  xcontext(`Start new phase`, async () => {
     let phaseDuration: number;
     let stakeAmountAccount1: BigNumber, stakeAmountAccount2: BigNumber;
 
@@ -101,7 +101,7 @@ context(`StakingContractUpgradeable`, async () => {
     })
   })
 
-  context(`Contribution correctly after multiple phases`, async () => {
+  xcontext(`Contribution correctly after multiple phases`, async () => {
     let phase1Duration: number, phase2Duration: number, phase3Duration: number;
     let stakeAmount1Account1: BigNumber, stakeAmount2Account1: BigNumber, stakeAmount3Account1: BigNumber, stakeAmountAccount2: BigNumber;
 
@@ -160,7 +160,7 @@ context(`StakingContractUpgradeable`, async () => {
     })
   })
 
-  context(`Two user stake`, async () => {
+  xcontext(`Two user stake`, async () => {
     let phase1Duration: number, phase2Duration: number, phase3Duration: number;
     let stakeAmount1Account1: BigNumber, stakeAmount2Account1: BigNumber, stakeAmount3Account1: BigNumber, stakeAmount1Account2: BigNumber;
 
@@ -236,6 +236,32 @@ context(`StakingContractUpgradeable`, async () => {
         const totalStake = await stakingContract.totalStake();
         expect(userStake).to.be.equal(totalStake);
         expect(userStake).to.be.equal(remainStake);
+    })
+
+    context(`Contribution correct after unstaking`, async () => {
+        beforeEach(async () => {
+            await stakingContract.connect(admin).startPhase(phase2Duration);
+            await mine(phase2Duration);
+
+            await stakingContract.connect(admin).startPhase(phase3Duration);
+        })
+        
+        it(`Correct contribution if dont unstake`, async () => {
+            const { userContribution, totalContribution } = await stakingContract.userContributionInPhase(account1.address, 2);
+            expect(userContribution).to.be.equal(stakeAmount1Account1.mul(phase3Duration));
+        });
+
+        it(`Correct contribution if user stake`, async () => {
+            const unstakeAmount = stakeAmount1Account1.div(4).mul(3);
+            const remainStake = stakeAmount1Account1.sub(unstakeAmount);
+            await mine(phase3Duration / 4 - 1);
+            await stakingContract.connect(account1).unstake(unstakeAmount);
+            const { userContribution, totalContribution } = await stakingContract.userContributionInPhase(account1.address, 2);
+            expect(userContribution).to.be.equal(
+                stakeAmount1Account1.mul(phase3Duration / 4)
+                .add(remainStake.mul(phase3Duration).mul(3).div(4))
+            )
+        })
     })
   })
 })
