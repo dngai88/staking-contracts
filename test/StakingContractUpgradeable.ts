@@ -103,7 +103,7 @@ context(`StakingContractUpgradeable`, async () => {
 
   context(`Contribution correctly after multiple phases`, async () => {
     let phase1Duration: number, phase2Duration: number, phase3Duration: number;
-    let stakeAmount1Account1: BigNumber, stakeAmount2Account1: BigNumber, stakeAmountAccount2: BigNumber;
+    let stakeAmount1Account1: BigNumber, stakeAmount2Account1: BigNumber, stakeAmount3Account1: BigNumber, stakeAmountAccount2: BigNumber;
 
     beforeEach(async () => {
         phase1Duration = 864000;
@@ -111,6 +111,7 @@ context(`StakingContractUpgradeable`, async () => {
         phase3Duration = 7776000;
         stakeAmount1Account1 = expandTo18Decimals(1000);
         stakeAmount2Account1 = expandTo18Decimals(2000);
+        stakeAmount3Account1 = expandTo18Decimals(4000);
         stakeAmountAccount2 = expandTo18Decimals(4000);
         await approve(account1);
         await approve(account2);
@@ -128,7 +129,7 @@ context(`StakingContractUpgradeable`, async () => {
         expect(userContribution2).to.be.equal(stakeAmount1Account1.mul(phase2Duration));
     })
 
-    it(`Contribution correct after staking one phase after`, async () => {
+    it(`Contribution correct after staking after phase 1, before phase 2`, async () => {
         await stakingContract.connect(account1).stake(stakeAmount2Account1);
         await stakingContract.connect(admin).startPhase(phase2Duration);
         const { userContribution: userContribution1, totalContribution: totalContribution1 } = await stakingContract.userContributionInPhase(account1.address, 0);
@@ -136,6 +137,26 @@ context(`StakingContractUpgradeable`, async () => {
         expect(userContribution1).to.be.equal(stakeAmount1Account1.mul(phase1Duration), "Phase 1 incorrect");
         expect(userContribution2).to.be.equal((stakeAmount1Account1.add(stakeAmount2Account1)).mul(phase2Duration), "Phase 2 incorrect");
         expect(totalContribution2).to.be.equal(stakeAmount1Account1.add(stakeAmount2Account1).mul(phase2Duration));
+    })
+
+    it(`Contribution correct in phase 3`, async () => {
+        await stakingContract.connect(admin).startPhase(phase2Duration);
+        await mine(phase2Duration);
+        await stakingContract.connect(admin).startPhase(phase3Duration);
+        await mine(phase3Duration / 4 - 2);
+        await stakingContract.connect(account1).stake(stakeAmount3Account1);
+
+        const { userContribution: userContribution1, totalContribution: totalContribution1 } = await stakingContract.userContributionInPhase(account1.address, 0);
+        const { userContribution: userContribution2, totalContribution: totalContribution2 } = await stakingContract.userContributionInPhase(account1.address, 1);
+        const { userContribution: userContribution3, totalContribution: totalContribution3 } = await stakingContract.userContributionInPhase(account1.address, 2);
+
+        expect(userContribution1).to.be.equal(stakeAmount1Account1.mul(phase1Duration), "UserContribution phase 1");
+        expect(totalContribution1).to.be.equal(stakeAmount1Account1.mul(phase1Duration), "TotalContribution phase 1");
+        expect(userContribution2).to.be.equal(stakeAmount1Account1.mul(phase2Duration)), "UserContribution phase 2";
+        expect(totalContribution2).to.be.equal(stakeAmount1Account1.mul(phase2Duration), "TotalContribution phase 2");
+        expect(userContribution3).to.be.equal((stakeAmount1Account1.mul(phase3Duration))
+                                            .add(stakeAmount3Account1.mul(phase3Duration).mul(3).div(4)), "UserContribution phase 3");
+        expect(totalContribution3).to.be.equal(userContribution3);
     })
   })
 })
